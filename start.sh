@@ -78,8 +78,8 @@ paths:
 db:
   \$class: LedgerSMB::Database::Factory
   connect_data:
-    host: ${POSTGRES_HOST:-postgres}
-    port: ${POSTGRES_PORT:-5432}
+    host: ${POSTGRES_HOST:-ledgersmb-do-user-16410467-0.k.db.ondigitalocean.com}
+    port: ${POSTGRES_PORT:-25060}
 
 mail:
   transport:
@@ -161,6 +161,9 @@ export LSMB_CONFIG_FILE
 echo '--------- LEDGERSMB CONFIGURATION:  ledgersmb.conf'
 cat ${LSMB_CONFIG_FILE}
 echo '--------- LEDGERSMB CONFIGURATION --- END'
+
+# Start Nginx in the background
+nginx &
 
 # ':5762:' suppresses an uninitialized variable warning in starman
 # the last colon means "don't connect using tls"; without it, there's a warning

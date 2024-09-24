@@ -3,23 +3,22 @@
 ARG SRCIMAGE=debian:bookworm-slim
 
 
-FROM  $SRCIMAGE AS builder
+FROM $SRCIMAGE AS builder
 
-ARG LSMB_VERSION="1.11.17"
-ARG LSMB_DL_DIR="Releases"
-ARG ARTIFACT_LOCATION="https://download.ledgersmb.org/f/$LSMB_DL_DIR/$LSMB_VERSION/ledgersmb-$LSMB_VERSION.tar.gz"
-
+ARG LSMB_COMMIT_SHA="0bcd8092e932be760a27fcbce038ce494462fc7a"
+ARG ARTIFACT_LOCATION="https://github.com/ledgersmb/LedgerSMB/archive/${LSMB_COMMIT_SHA}.tar.gz"
 
 RUN set -x ; \
   DEBIAN_FRONTEND="noninteractive" apt-get -q -y update && \
   DEBIAN_FRONTEND="noninteractive" apt-get -q -y dist-upgrade && \
-  DEBIAN_FRONTEND="noninteractive" apt-get -q -y install dh-make-perl libmodule-cpanfile-perl git wget && \
+  DEBIAN_FRONTEND="noninteractive" apt-get -q -y install dh-make-perl libmodule-cpanfile-perl git wget curl && \
   apt-file update
 
 RUN set -x ; \
-  wget --quiet -O /tmp/ledgersmb-$LSMB_VERSION.tar.gz "$ARTIFACT_LOCATION" && \
-  tar -xzf /tmp/ledgersmb-$LSMB_VERSION.tar.gz --directory /srv && \
-  rm -f /tmp/ledgersmb-$LSMB_VERSION.tar.gz && \
+  wget --quiet -O /tmp/ledgersmb-${LSMB_COMMIT_SHA}.tar.gz "$ARTIFACT_LOCATION" && \
+  tar -xzf /tmp/ledgersmb-${LSMB_COMMIT_SHA}.tar.gz --directory /srv && \
+  rm -f /tmp/ledgersmb-${LSMB_COMMIT_SHA}.tar.gz && \
+  mv /srv/LedgerSMB-${LSMB_COMMIT_SHA} /srv/ledgersmb && \
   cd /srv/ledgersmb && \
   ( ( for lib in $( cpanfile-dump --with-all-features --recommends --no-configure --no-build --no-test ) ; \
     do \
@@ -51,10 +50,8 @@ LABEL org.opencontainers.image.description="LedgerSMB is a full featured double-
  the LedgerSMB project is to bring high quality ERP and accounting capabilities\
  to Small and Midsize Businesses."
 
-ARG LSMB_VERSION="1.11.17"
-ARG LSMB_DL_DIR="Releases"
-ARG ARTIFACT_LOCATION="https://download.ledgersmb.org/f/$LSMB_DL_DIR/$LSMB_VERSION/ledgersmb-$LSMB_VERSION.tar.gz"
-
+ARG LSMB_COMMIT_SHA="0bcd8092e932be760a27fcbce038ce494462fc7a"
+ARG ARTIFACT_LOCATION="https://github.com/ledgersmb/LedgerSMB/archive/${LSMB_COMMIT_SHA}.tar.gz"
 
 # Install Perl, Tex, Starman, psql client, and all dependencies
 # Without libclass-c3-xs-perl, performance is terribly slow...
@@ -78,7 +75,7 @@ RUN set -x ; \
   DEBIAN_FRONTEND="noninteractive" apt-get -q -y update && \
   DEBIAN_FRONTEND="noninteractive" apt-get -q -y dist-upgrade && \
   DEBIAN_FRONTEND="noninteractive" apt-get -q -y install \
-    wget ca-certificates gnupg iproute2 \
+    wget curl ca-certificates gnupg iproute2 nginx \
     $( cat /tmp/derived-deps ) \
     libclass-c3-xs-perl \
     texlive-plain-generic texlive-latex-recommended texlive-fonts-recommended \
@@ -89,21 +86,27 @@ RUN set -x ; \
   DEBIAN_FRONTEND="noninteractive" apt-get -q -y update && \
   DEBIAN_FRONTEND="noninteractive" apt-get -q -y install postgresql-client && \
   DEBIAN_FRONTEND="noninteractive" apt-get -q -y install git cpanminus make gcc libperl-dev && \
-  wget --quiet -O /tmp/ledgersmb-$LSMB_VERSION.tar.gz "$ARTIFACT_LOCATION" && \
-  tar -xzf /tmp/ledgersmb-$LSMB_VERSION.tar.gz --directory /srv && \
-  rm -f /tmp/ledgersmb-$LSMB_VERSION.tar.gz && \
+  wget --quiet -O /tmp/ledgersmb-${LSMB_COMMIT_SHA}.tar.gz "$ARTIFACT_LOCATION" && \
+  tar -xzf /tmp/ledgersmb-${LSMB_COMMIT_SHA}.tar.gz --directory /srv && \
+  rm -f /tmp/ledgersmb-${LSMB_COMMIT_SHA}.tar.gz && \
+  mv /srv/LedgerSMB-${LSMB_COMMIT_SHA} /srv/ledgersmb && \
+  cd /srv/ledgersmb && \
   cpanm --metacpan --notest \
     --with-feature=starman \
     --with-feature=latex-pdf-ps \
     --with-feature=openoffice \
-    --installdeps /srv/ledgersmb/ && \
-  DEBIAN_FRONTEND="noninteractive" apt-get purge -q -y git cpanminus make gcc libperl-dev && \
-  DEBIAN_FRONTEND="noninteractive" apt-get autoremove -q -y && \
-  DEBIAN_FRONTEND="noninteractive" apt-get clean -q && \
+    --installdeps /srv/ledgersmb/ 
+
+RUN set -x ; \
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -  && \
+  apt-get -y install nodejs && \
+  npm install -g yarn && \
+  npm install -g uglify-js@">=2.0 <3.0" && \
   rm -rf ~/.cpanm/ /var/lib/apt/lists/* /usr/share/man/*
 
-
 WORKDIR /srv/ledgersmb
+
+RUN make js
 
 # master requirements
 
@@ -121,22 +124,27 @@ ENV LSMB_MAIL_SMTPHOST __CONTAINER_GATEWAY__
 #ENV LSMB_MAIL_SMTPAUTHMECH
 
 ## DATABASE
-ENV POSTGRES_HOST postgres
-ENV POSTGRES_PORT 5432
-ENV DEFAULT_DB lsmb
+ENV POSTGRES_HOST ledgersmb-do-user-16410467-0.k.db.ondigitalocean.com
+ENV POSTGRES_PORT 25060
+ENV DEFAULT_DB defaultdb
 
 COPY start.sh /usr/local/bin/start.sh
+COPY nginx.conf /etc/nginx/nginx.conf
 
 RUN chmod +x /usr/local/bin/start.sh && \
   mkdir -p /var/www && \
   mkdir -p /srv/ledgersmb/local/conf && \
   chown -R www-data /srv/ledgersmb/local
 
+# Create Nginx temporary directories and set permissions
+RUN mkdir -p /tmp/client_body /tmp/proxy_temp /tmp/fastcgi_temp /tmp/scgi_temp /tmp/uwsgi_temp && \
+    chown -R www-data:www-data /tmp/*
+
 # Work around an aufs bug related to directory permissions:
 RUN mkdir -p /tmp && chmod 1777 /tmp
 
 # Internal Port Expose
-EXPOSE 5762
+EXPOSE 8080
 
 USER www-data
 CMD ["start.sh"]
