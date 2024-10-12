@@ -85,7 +85,10 @@ RUN set -ex && \
 
 
 COPY start.sh /etc/services.d/ledgersmb/run
-RUN chmod +x /etc/services.d/ledgersmb/run && chown www-data:www-data  /etc/services.d/ledgersmb/run
+RUN chmod +x /etc/services.d/ledgersmb/run && chown www-data:www-data /etc/services.d/ledgersmb/run
+
+COPY services/nginx/run /etc/services.d/nginx/run
+RUN chmod +x /etc/services.d/nginx/run && chown www-data:www-data /etc/services.d/nginx/run
 
 RUN chown -R www-data:www-data /etc/services.d
 
