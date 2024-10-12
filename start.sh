@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/bin/bash -e
+
 
 cd /srv/ledgersmb
 [[ -d ./local/conf/ ]] || mkdir ./local/conf/
@@ -74,23 +75,19 @@ paths:
   config:
     UI: ./UI/
     UI_cache: lsmb_templates/
-
 db:
   \$class: LedgerSMB::Database::Factory
   connect_data:
-    host: ${POSTGRES_HOST:-ledgersmb-do-user-16410467-0.k.db.ondigitalocean.com}
+    host: ${POSTGRES_HOST:-ledgersmb-do-user-66666666-0.k.db.ondigitalocean.com}
     port: ${POSTGRES_PORT:-25060}
-
 mail:
   transport:
     \$class: LedgerSMB::Mailer::TransportSMTP
     tls: $LSMB_MAIL_SMTPTLS
-
 miscellaneous:
   \$class: Beam::Wire
   config:
     proxy_ip: ${PROXY_IP:-172.17.0.1/12}
-
 ui:
   class: LedgerSMB::Template::UI
   method: new_UI
@@ -162,11 +159,6 @@ echo '--------- LEDGERSMB CONFIGURATION:  ledgersmb.conf'
 cat ${LSMB_CONFIG_FILE}
 echo '--------- LEDGERSMB CONFIGURATION --- END'
 
-# Start Nginx in the background
-nginx &
 
-# ':5762:' suppresses an uninitialized variable warning in starman
-# the last colon means "don't connect using tls"; without it, there's a warning
-exec starman --listen 0.0.0.0:5762 --workers ${LSMB_WORKERS:-5} \
-             -I lib -I old/lib \
-             --preload-app bin/ledgersmb-server.psgi
+exec nginx -g "daemon off;" &
+exec starman --listen 0.0.0.0:5762 --workers ${LSMB_WORKERS:-5} -I lib -I old/lib --preload-app bin/ledgersmb-server.psgi
