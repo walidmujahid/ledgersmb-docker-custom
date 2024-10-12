@@ -93,7 +93,7 @@ RUN chmod +x /etc/services.d/nginx/run && chown www-data:www-data /etc/services.
 COPY scripts/ledgersmb_config /etc/s6-overlay/s6-rc.d/ledgersmb_config
 RUN chmod +x /etc/s6-overlay/s6-rc.d/ledgersmb_config && chown www-data:www-data /etc/s6-overlay/s6-rc.d/ledgersmb_config
 
-RUN chown -R www-data:www-data /etc/services.d
+RUN chown -R www-data:www-data /etc/services.d /run
 
 RUN mkdir -p /var/www /srv/ledgersmb/local/conf && \
     chown -R www-data /srv/ledgersmb/local
