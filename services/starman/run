@@ -1,0 +1,4 @@
+#!/bin/bash -e
+
+cd /srv/ledgersmb
+exec starman --listen 0.0.0.0:5762 --workers ${LSMB_WORKERS:-5} -I lib -I old/lib --preload-app bin/ledgersmb-server.psgi
