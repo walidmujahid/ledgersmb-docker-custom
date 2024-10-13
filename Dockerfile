@@ -102,11 +102,12 @@ RUN chown -R www-data:www-data /etc/services.d /run
 RUN mkdir -p /var/www /srv/ledgersmb/local/conf && \
     chown -R www-data /srv/ledgersmb/local
 
+# Load env variables
+COPY .env /srv/ledgersmb/.env
+RUN chown www-data:www-data /srv/ledgersmb/.env
+
 ENV PERL5LIB=/srv/ledgersmb/lib/:/srv/ledgersmb/old/lib
-ENV POSTGRES_HOST ledgersmb-do-user-16410467-0.k.db.ondigitalocean.com
-ENV POSTGRES_PORT 25060
-ENV DEFAULT_DB defaultdb
-ENV UMASK 0002
+ENV UMASK=0002
 
 EXPOSE 8080
 
