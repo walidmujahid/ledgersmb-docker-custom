@@ -91,7 +91,11 @@ COPY services/nginx/run /etc/services.d/nginx/run
 RUN chmod +x /etc/services.d/nginx/run && chown www-data:www-data /etc/services.d/nginx/run
 
 COPY scripts/ledgersmb_config /etc/s6-overlay/s6-rc.d/ledgersmb_config
-RUN chmod +x /etc/s6-overlay/s6-rc.d/ledgersmb_config && chown www-data:www-data /etc/s6-overlay/s6-rc.d/ledgersmb_config
+RUN touch /etc/s6-overlay/s6-rc.d/user/contents.d/ledgersmb_config
+RUN chmod +x /etc/s6-overlay/s6-rc.d/ledgersmb_config/up \
+    /etc/s6-overlay/s6-rc.d/ledgersmb_config/config && \
+    chown -R www-data:www-data /etc/s6-overlay/s6-rc.d/
+
 
 RUN chown -R www-data:www-data /etc/services.d /run
 
