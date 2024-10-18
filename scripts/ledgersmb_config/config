@@ -1,11 +1,6 @@
-#!/bin/bash -e
+#!/usr/bin/with-contenv /bin/bash
 
 cd /srv/ledgersmb
-
-while IFS='=' read -r key value; do
-    export "$key=$value"
-done < /srv/ledgersmb/.env
-
 [[ -d ./local/conf/ ]] || mkdir ./local/conf/
 if [[ -n "$SSMTP_ROOT" ]]; then
     echo "\$SSMTP_ROOT set; parameter is deprecated and will be ignored"

@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/usr/bin/with-contenv /bin/bash
 
 cd /srv/ledgersmb
 
